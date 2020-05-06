@@ -1,7 +1,9 @@
 module FullRegisterGate
 
-# build expands the given gate with optional control qubits to entire quantum register with the given size.
-function build(register_size::Integer,
+export expandGateToFullRegister
+
+# expandGateToFullRegister expands the given gate with optional control qubits to entire quantum register with the given size.
+function expandGateToFullRegister(register_size::Integer,
 	gate::AbstractMatrix{Complex{Float64}},
 	gate_lowest_index::Integer,
 	control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([])
