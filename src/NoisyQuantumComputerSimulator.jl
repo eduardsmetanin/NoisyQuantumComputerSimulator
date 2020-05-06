@@ -1,18 +1,21 @@
 module NoisyQuantumComputerSimulator
 
-using LinearAlgebra
-
-export Program, exec, gate, h, x, y, z, swap, s, noise, amplitude_damping
+export Curcuit, exec
 
 include("FullRegisterGate.jl")
+include("Gates.jl")
 
-mutable struct Program
-	qubit_count:: Int
+using LinearAlgebra
+using .FullRegisterGate
+using .Gates
+
+mutable struct Curcuit
+	qubit_count::Int
 	density_matrix::Array{Complex{Float64}}
 	commands::Array{Function}
 
-	# Program creates quantum register with the given size and sets it's value to |0⟩.
-	function Program(size::Integer)
+	# Curcuit creates quantum register with the given size and sets it's value to |0⟩.
+	function Curcuit(size::Integer)
 		state_size = 2^size
 		density_matrix = zeros(Complex{Float64}, state_size, state_size)
 		density_matrix[1,1] = 1
@@ -20,116 +23,103 @@ mutable struct Program
 	end
 end
 
-function exec(program::Program)
-	for command ∈ program.commands
+function add_gate(c::Curcuit, g::Gate)::Curcuit
+	for control ∈ g.control_bit_indexes
+		if control < 0 || control >= c.qubit_count
+			error("control bit at index $control is outside of bounds of quantum register [0, $(c.qubit_count-1)]")
+		end
+	end
+	if g.swap_bit_index_a ≠ -1 && g.swap_bit_index_b ≠ -1
+		if g.swap_bit_index_a < 0 || g.swap_bit_index_a >= c.qubit_count
+			error("bit to SWAP at index $(g.swap_bit_index_a) is outside of bounds of quantum register [0, $(c.qubit_count-1)]")
+		end
+		if g.swap_bit_index_b < 0 || g.swap_bit_index_b >= c.qubit_count
+			error("bit to SWAP at index $(g.swap_bit_index_b) is outside of bounds of quantum register [0, $(c.qubit_count-1)]")
+		end
+		# build SWAP as a sequence of 3 CNOTs.
+		not_matrix = Matrix{Complex{Float64}}([0 1; 1 0])
+		controls_a = vcat(g.swap_bit_index_a, g.control_bit_indexes)
+		controls_b = vcat(g.swap_bit_index_b, g.control_bit_indexes)
+		add_unitary_gate!(c, not_matrix, g.swap_bit_index_a, controls_b)
+		add_unitary_gate!(c, not_matrix, g.swap_bit_index_b, controls_a)
+		add_unitary_gate!(c, not_matrix, g.swap_bit_index_a, controls_b)
+	else
+		matrix_size = size(g.matrix)[1]
+		if matrix_size == 0
+			error("matrix is empty")
+		end
+		gate_size = Int(log2(matrix_size))
+		if g.qubit_index < 0 || g.qubit_index + gate_size > c.qubit_count
+			error("quantum register of size $(c.qubit_count) cannot fit given gate of size $(gate_size) at index $(g.qubit_index)")
+		end
+		add_unitary_gate!(c, g.matrix, g.qubit_index, g.control_bit_indexes)
+	end
+	if size(g.kraus_operators)[1] > 0
+		# TODO: Take case of controlled gates
+		add_noise!(c, g.kraus_operators, g.qubit_index)
+	end
+	return c
+end
+
+# Defining + allows adding gates like this: curcuit += gate
+Base.:+(c::Curcuit, g::Gate) = add_gate(c, g)
+# TODO: Define Base.:+(g::Gate, c::Curcuit) and Base.:+(g1::Gate, g2::Gate) ?
+
+function exec(c::Curcuit)
+	for command ∈ c.commands
 		command()
 	end
 	return
 end
 
-# gate runs the given gate with optional control bits.
-function gate(program::Program, 
+# add_unitary_gate! adds the given unitary gate with optional control bits to the given curcuit.
+function add_unitary_gate!(c::Curcuit, 
 	matrix::AbstractMatrix{Complex{Float64}},
 	gate_lowest_index::Integer,
-	control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]) # TODO: Can it be Integer?
-	)
-	push!(program.commands, ()->begin
-		big_matrix = FullRegisterGate.build(program.qubit_count, matrix, gate_lowest_index, control_bit_indexes)
-		program.density_matrix = big_matrix * program.density_matrix * big_matrix'
+	control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([])) # TODO: Can it be Integer?
+
+	push!(c.commands, ()->begin
+		# TODO: Should computing of big_matrix be moved above push?
+		big_matrix = expandGateToFullRegister(c.qubit_count, matrix, gate_lowest_index, control_bit_indexes)
+		c.density_matrix = big_matrix * c.density_matrix * big_matrix'
 		return
 	end)
 	return
 end
 
-# h runs Hadamard gate with optional control bits.
-function h(program::Program, index::Integer, control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))
-	gate(program, Matrix{Complex{Float64}}(1/√2 * [1 1; 1 -1]), index, control_bit_indexes)
-	return
-end
-
-# x runs X gate with optional control bits.
-function x(program::Program, index::Integer, control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))
-	gate(program, Matrix{Complex{Float64}}([0 1; 1 0]), index, control_bit_indexes)
-	return
-end
-
-# y runs Y gate with optional control bits.
-function y(program::Program, index::Integer, control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))
-	gate(program, Matrix{Complex{Float64}}([0 complex(0, -1); complex(0, 1) 0]), index, control_bit_indexes)
-	return
-end
-
-# z runs Z gate with optional control bits.
-function z(program::Program, index::Integer, control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))
-	gate(program, Matrix{Complex{Float64}}([1 0; 0 -1]), index, control_bit_indexes)
-	return
-end
-
-# swap runs SWAP gate with optional control bits.
-function swap(program::Program,
-	index_a::Integer,
-	index_b::Integer,
-	control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))
-
-	controls_a = vcat(index_a, control_bit_indexes)
-	controls_b = vcat(index_b, control_bit_indexes)
-	x(program, index_a, controls_b)
-	x(program, index_b, controls_a)
-	x(program, index_a, controls_b)
-	return
-end
-
-# s runs phase gate (S) with optional control bits.
-function s(program::Program, index::Integer, control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))
-	gate(program, Matrix{Complex{Float64}}([1 0; 0 complex(0,1)]), index, control_bit_indexes)
-	return
-end
-
-# noise runs the specified via Kraus operators noise gate.
-function noise(program::Program, 
+# add_noise! adds the specified via Kraus operators noise gate to the given curcuit.
+function add_noise!(c::Curcuit, 
 	kraus_operators::AbstractVector{Matrix{Complex{Float64}}},
 	gate_lowest_index::Integer)
 
 	# println("------------------------------------------------------------------------------------")
 	# println("kraus_operators: $kraus_operators")
-	push!(program.commands, ()->begin
+	push!(c.commands, ()->begin
+		# TODO: Should computing of kraus_probabilities and big_kraus_operators be moved above push?
 		kraus_probabilities = Vector{Float64}([])
 		big_kraus_operators = Vector{Matrix{Complex{Float64}}}([])
 		for kraus ∈ kraus_operators
-			big_kraus = FullRegisterGate.build(program.qubit_count, kraus, gate_lowest_index)
+			big_kraus = expandGateToFullRegister(c.qubit_count, kraus, gate_lowest_index)
 			# println("big_kraus: $big_kraus")
-			trace = tr(big_kraus * program.density_matrix * big_kraus')
+			trace = tr(big_kraus * c.density_matrix * big_kraus')
 			if imag(trace) ≉ 0
-				error("expected trace be a real value since it's probability, got $trace")
+				error("expected trace be a real value since it's a probability, got $trace")
 			end
-			kraus_probability = real(tr(big_kraus * program.density_matrix * big_kraus'))
+			kraus_probability = real(tr(big_kraus * c.density_matrix * big_kraus'))
 			# println("kraus_probability: $kraus_probability")
 			push!(big_kraus_operators, big_kraus)
 			push!(kraus_probabilities, kraus_probability)
 		end
 		random_kraus_index = random_index(kraus_probabilities)
 		# println("random_kraus_index: $random_kraus_index")
-		random_big_kraus = big_kraus_operators[random_kraus_index]
-		# println("random_big_kraus: $random_big_kraus")
-		random_big_kraus_probability = kraus_probabilities[random_kraus_index]
-		# println("random_big_kraus_probability: $random_big_kraus_probability")
-		program.density_matrix = random_big_kraus * program.density_matrix * random_big_kraus' / random_big_kraus_probability
-		# println("program.density_matrix: $(program.density_matrix)")
+		big_kraus = big_kraus_operators[random_kraus_index]
+		# println("chosen big_kraus: $big_kraus")
+		big_kraus_probability = kraus_probabilities[random_kraus_index]
+		# println("big_kraus_probability: $big_kraus_probability")
+		c.density_matrix = big_kraus * c.density_matrix * big_kraus' / big_kraus_probability
+		# println("c.density_matrix: $(c.density_matrix)")
 		return
 	end)
-	return
-end
-
-damping_residual_kraus(decay_1_to_0_probability = .1) = Matrix{Complex{Float64}}([1 0; 0 √(1-decay_1_to_0_probability)])
-damping_kraus(decay_1_to_0_probability = .1) = Matrix{Complex{Float64}}([0 √decay_1_to_0_probability; 0 0])
-damping_kraus_operators(decay_1_to_0_probability = .1) = [damping_residual_kraus(decay_1_to_0_probability), damping_kraus(decay_1_to_0_probability)]
-
-# amplitude_damping adds noise via amplitude damping kraus operators with given probability of decay |1> to |0>.
-function amplitude_damping(program::Program, 
-	ket1_to_ket0_decay_probability::Real,
-	gate_lowest_index::Integer)
-
-	noise(program, damping_kraus_operators(ket1_to_ket0_decay_probability), gate_lowest_index)
 	return
 end
 
@@ -153,16 +143,5 @@ function value_index_by_probabilities(value::Float64, probabilities::AbstractVec
 	end
 	return length(probabilities) # Unlikely, but control might reach here in case of some rounding issues.
 end
-
-# function product!(state::AbstractArray, gate::AbstractMatrix{Complex{Float64}})
-# 	s = size(state)
-# 	if s[1] == 1
-# 		error("state cannot be a row vector; use column vector or density matrix")
-# 	end
-# 	if length(s) == 1 # state is a column (e.g. size([10; 20]) == (2,))
-# 		return gate * state
-# 	end
-# 	return gate * state * gate'
-# end
 
 end # module
