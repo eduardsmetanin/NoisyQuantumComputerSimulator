@@ -1,4 +1,4 @@
-module NoisyQuantumComputerSimulator
+module Curcuits
 
 export Curcuit, exec
 
@@ -15,11 +15,15 @@ mutable struct Curcuit
 	commands::Array{Function}
 
 	# Curcuit creates quantum register with the given size and sets it's value to |0⟩.
-	function Curcuit(size::Integer)
+	function Curcuit(size::Integer, gates...)
 		state_size = 2^size
 		density_matrix = zeros(Complex{Float64}, state_size, state_size)
 		density_matrix[1,1] = 1
-		return new(Int(size), density_matrix, Array{Function}[])
+		curcuit = new(Int(size), density_matrix, Array{Function}[])
+		for gate ∈ gates
+			curcuit += gate
+		end
+		return curcuit
 	end
 end
 
@@ -65,11 +69,11 @@ end
 Base.:+(c::Curcuit, g::Gate) = add_gate(c, g)
 # TODO: Define Base.:+(g::Gate, c::Curcuit) and Base.:+(g1::Gate, g2::Gate) ?
 
-function exec(c::Curcuit)
+function exec(c::Curcuit)::Array{Complex{Float64}}
 	for command ∈ c.commands
 		command()
 	end
-	return
+	return c.density_matrix
 end
 
 # add_unitary_gate! adds the given unitary gate with optional control bits to the given curcuit.

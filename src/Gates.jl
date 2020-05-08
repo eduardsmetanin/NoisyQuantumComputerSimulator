@@ -1,6 +1,6 @@
 module Gates
 
-export Gate, ID, X, Y, Z, H, PHASE, S, T, CZ, RX, RY, RZ, CNOT, CCNOT, SWAP, CSWAP, CCSWAP, custom_gate, controlled, noisify, damp_amplitude
+export Gate, ID, X, Y, Z, H, PHASE, S, T, CZ, RX, RY, RZ, CNOT, CCNOT, SWAP, CSWAP, CCSWAP, SQiSW, custom_gate, controlled, noisify, damp_amplitude
 
 const empty_matrix = Matrix{Complex{Float64}}(undef, 0, 0)
 const empty_kraus = Vector{Matrix{Complex{Float64}}}(undef,0)
@@ -119,6 +119,11 @@ end
 
 function CCSWAP(control_index_a::Integer, control_index_b::Integer, swap_bit_index_a::Integer, swap_bit_index_b::Integer)::Gate
 	return Gate(swap_bit_index_a, swap_bit_index_b, [control_index_a, control_index_b])
+end
+
+# TODO: Figure out how to be able to accept 2 indexes and to be able to square-root-iswap non-adjacent qubits.
+function SQiSW(qubit_index::Integer)::Gate
+	return Gate(Matrix{Complex{Float64}}([1 0 0 0; 0 1/√2 complex(0,1/√2) 0; 0 complex(0,1/√2) 1/√2 0; 0 0 0 1]), qubit_index)
 end
 
 function custom_gate(matrix::Matrix{Complex{Float64}}, qubit_index::Integer, control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))::Gate
