@@ -1,8 +1,8 @@
 using Test
 using LinearAlgebra
-using NoisyQuantumComputerSimulator
-using NoisyQuantumComputerSimulator.FullRegisterGate
-using NoisyQuantumComputerSimulator.Gates
+using Curcuits
+using Curcuits.FullRegisterGate
+using Curcuits.Gates
 
 ⊗ = kron
 
@@ -35,39 +35,11 @@ BELL₁ = BELL * [0; 1; 0; 0]
 BELL₂ = BELL * [0; 0; 1; 0]
 BELL₃ = BELL * [0; 0; 0; 1]
 
-c = Curcuit(2)
-c += H(1)
-c += CNOT(1,0)
-exec(c)
-@test c.density_matrix == BELL₀ * BELL₀'
-
-c = Curcuit(2)
-c += X(0)
-c += H(1)
-c += CNOT(1,0)
-exec(c)
-@test c.density_matrix == BELL₁ * BELL₁'
-
-c = Curcuit(2)
-c += X(1)
-c += H(1)
-c += CNOT(1,0)
-exec(c)
-@test c.density_matrix == BELL₂ * BELL₂'
-
-c = Curcuit(2)
-c += X(0)
-c += X(1)
-c += H(1)
-c += CNOT(1,0)
-exec(c)
-@test c.density_matrix == BELL₃ * BELL₃'
-
-c = Curcuit(4)
-c += H(2)
-c += CNOT(2,1)
-exec(c)
-@test c.density_matrix ≈ ([1; 0] ⊗ BELL₀ ⊗ [1; 0]) * ([1 0] ⊗ BELL₀' ⊗ [1 0])
+@test exec(Curcuit(2, H(1), CNOT(1,0))) == BELL₀ * BELL₀'
+@test exec(Curcuit(2, X(0), H(1), CNOT(1,0))) == BELL₁ * BELL₁'
+@test exec(Curcuit(2, X(1), H(1), CNOT(1,0))) == BELL₂ * BELL₂'
+@test exec(Curcuit(2, X(0), X(1), H(1), CNOT(1,0))) == BELL₃ * BELL₃'
+@test exec(Curcuit(4, H(2), CNOT(2,1))) ≈ ([1; 0] ⊗ BELL₀ ⊗ [1; 0]) * ([1 0] ⊗ BELL₀' ⊗ [1 0])
 
 # Testing CCNOT.
 
@@ -88,335 +60,106 @@ CCBELL₅ = CCBELL * [0; 0; 0; 0; 0; 1; 0; 0]
 CCBELL₆ = CCBELL * [0; 0; 0; 0; 0; 0; 1; 0]
 CCBELL₇ = CCBELL * [0; 0; 0; 0; 0; 0; 0; 1]
 
-c = Curcuit(3)
-c += H(0)
-c += H(2)
-c += CCNOT(0,2,1)
-exec(c)
-@test c.density_matrix ≈ CCBELL₀ * CCBELL₀'
-
-c = Curcuit(3)
-c += X(0)
-c += H(0)
-c += H(2)
-c += CCNOT(0,2,1)
-exec(c)
-@test c.density_matrix ≈ CCBELL₁ * CCBELL₁'
-
-c = Curcuit(3)
-c += X(1)
-c += H(0)
-c += H(2)
-c += CCNOT(0,2,1)
-exec(c)
-@test c.density_matrix ≈ CCBELL₂ * CCBELL₂'
-
-c = Curcuit(3)
-c += X(0)
-c += X(1)
-c += H(0)
-c += H(2)
-c += CCNOT(0,2,1)
-exec(c)
-@test c.density_matrix ≈ CCBELL₃ * CCBELL₃'
-
-c = Curcuit(3)
-c += X(2)
-c += H(0)
-c += H(2)
-c += CCNOT(0,2,1)
-exec(c)
-@test c.density_matrix ≈ CCBELL₄ * CCBELL₄'
-
-c = Curcuit(3)
-c += X(0)
-c += X(2)
-c += H(0)
-c += H(2)
-c += CCNOT(0,2,1)
-exec(c)
-@test c.density_matrix ≈ CCBELL₅ * CCBELL₅'
-
-c = Curcuit(3)
-c += X(1)
-c += X(2)
-c += H(0)
-c += H(2)
-c += CCNOT(0,2,1)
-exec(c)
-@test c.density_matrix ≈ CCBELL₆ * CCBELL₆'
-
-c = Curcuit(3)
-c += X(0)
-c += X(1)
-c += X(2)
-c += H(0)
-c += H(2)
-# c += CCNOT(0,2,1)
-c += custom_gate(matrix_X,1,[0,2]) #c += custom_gate(X,0)
-exec(c)
-@test c.density_matrix ≈ CCBELL₇ * CCBELL₇'
+@test exec(Curcuit(3, H(0), H(2), CCNOT(0,2,1))) ≈ CCBELL₀ * CCBELL₀'
+@test exec(Curcuit(3, X(0), H(0), H(2), CCNOT(0,2,1))) ≈ CCBELL₁ * CCBELL₁'
+@test exec(Curcuit(3, X(1), H(0), H(2), CCNOT(0,2,1))) ≈ CCBELL₂ * CCBELL₂'
+@test exec(Curcuit(3, X(0), X(1), H(0), H(2), CCNOT(0,2,1))) ≈ CCBELL₃ * CCBELL₃'
+@test exec(Curcuit(3, X(2), H(0), H(2), CCNOT(0,2,1))) ≈ CCBELL₄ * CCBELL₄'
+@test exec(Curcuit(3, X(0), X(2), H(0), H(2), CCNOT(0,2,1))) ≈ CCBELL₅ * CCBELL₅'
+@test exec(Curcuit(3, X(1), X(2), H(0), H(2), CCNOT(0,2,1))) ≈ CCBELL₆ * CCBELL₆'
+@test exec(Curcuit(3, X(0), X(1), X(2), H(0), H(2), custom_gate(matrix_X,1,[0,2]))) ≈ CCBELL₇ * CCBELL₇'
 
 # Testing X.
-
-c = Curcuit(1)
-c += X(0)
-exec(c)
-@test c.density_matrix == [0 0; 0 1]
-
-c = Curcuit(1)
-c += custom_gate(matrix_X,0)
-c += X(0)
-exec(c)
-@test c.density_matrix == [1 0; 0 0]
-
-c = Curcuit(1)
-c += H(0)
-c += X(0)
-exec(c)
-@test c.density_matrix ≈ [.5 .5; .5 .5]
-
-c = Curcuit(1)
-c += custom_gate(matrix_X,0)
-c += H(0)
-c += X(0)
-exec(c)
-@test c.density_matrix ≈ [.5 -.5; -.5 .5]
+@test exec(Curcuit(1, X(0))) == [0 0; 0 1]
+@test exec(Curcuit(1, custom_gate(matrix_X,0), X(0))) == [1 0; 0 0]
+@test exec(Curcuit(1, H(0), X(0))) ≈ [.5 .5; .5 .5]
+@test exec(Curcuit(1, custom_gate(matrix_X,0), H(0), X(0))) ≈ [.5 -.5; -.5 .5]
 
 # Testing Y.
-
-c = Curcuit(1)
-c += Y(0)
-exec(c)
-@test c.density_matrix == [0 0; 0 1]
-
-c = Curcuit(1)
-c += X(0)
-c += Y(0)
-exec(c)
-@test c.density_matrix == [1 0; 0 0]
+@test exec(Curcuit(1, Y(0))) == [0 0; 0 1]
+@test exec(Curcuit(1, X(0), Y(0))) == [1 0; 0 0]
 
 # Testing Z.
-
-c = Curcuit(1)
-c += Z(0)
-exec(c)
-@test c.density_matrix == [1 0; 0 0]
-
-c = Curcuit(1)
-c += X(0)
-c += Z(0)
-exec(c)
-@test c.density_matrix == [0 0; 0 1]
-
-c = Curcuit(1)
-c += H(0)
-c += Z(0)
-exec(c)
-@test c.density_matrix ≈ [.5 -.5; -.5 .5]
-
-c = Curcuit(1)
-c += X(0)
-c += H(0)
-c += Z(0)
-exec(c)
-@test c.density_matrix ≈ [.5 .5; .5 .5]
+@test exec(Curcuit(1, Z(0))) == [1 0; 0 0]
+@test exec(Curcuit(1, X(0), Z(0))) == [0 0; 0 1]
+@test exec(Curcuit(1, H(0), Z(0))) ≈ [.5 -.5; -.5 .5]
+@test exec(Curcuit(1, X(0), H(0), Z(0))) ≈ [.5 .5; .5 .5]
 
 # Testing H.
-
-c = Curcuit(1)
-c += H(0)
-exec(c)
-@test c.density_matrix ≈ [.5 .5; .5 .5]
+@test exec(Curcuit(1, H(0))) ≈ [.5 .5; .5 .5]
 
 # Testing PHASE.
-
-c = Curcuit(1)
-c += H(0)
-c += PHASE(pi/2, 0)
-exec(c)
-@test c.density_matrix ≈ [.5 complex(0,-.5); complex(0,.5) .5]
+@test exec(Curcuit(1, H(0), PHASE(pi/2, 0))) ≈ [.5 complex(0,-.5); complex(0,.5) .5]
 
 # Testing S.
-
-c = Curcuit(1)
-c += H(0)
-c += S(0)
-exec(c)
-@test c.density_matrix ≈ [.5 -.5im; .5im .5]
-
-c = Curcuit(1)
-c += X(0)
-c += H(0)
-c += S(0)
-exec(c)
-@test c.density_matrix ≈ [.5 .5im; -.5im .5]
+@test exec(Curcuit(1, H(0), S(0))) ≈ [.5 -.5im; .5im .5]
+@test exec(Curcuit(1, X(0), H(0), S(0))) ≈ [.5 .5im; -.5im .5]
 
 # Testing T.
-
-c = Curcuit(1)
-c += H(0)
-c += T(0)
-exec(c)
-@test c.density_matrix ≈ [.5 (1-1im)/(2*sqrt(2)); (1+1im)/(2*sqrt(2)) .5]
+@test exec(Curcuit(1, H(0), T(0))) ≈ [.5 (1-1im)/(2*sqrt(2)); (1+1im)/(2*sqrt(2)) .5]
 
 # Testing CZ.
-
-c = Curcuit(2)
-c += H(0)
-c += H(1)
-c += CZ(1,0)
-exec(c)
-@test c.density_matrix ≈ [.5; .5; .5; -.5] * [.5 .5 .5 -.5]
+@test exec(Curcuit(2, H(0), H(1), CZ(1,0))) ≈ [.5; .5; .5; -.5] * [.5 .5 .5 -.5]
 
 # Testing RX.
-c = Curcuit(1)
-c += RX(pi,0)
-exec(c)
-@test c.density_matrix ≈ [0 0; 0 1]
-
-c = Curcuit(1)
-c += RX(pi/2,0)
-exec(c)
-@test c.density_matrix ≈ [.5 .5im; -.5im .5]
+@test exec(Curcuit(1, RX(pi,0))) ≈ [0 0; 0 1]
+@test exec(Curcuit(1, RX(pi/2,0))) ≈ [.5 .5im; -.5im .5]
 
 # Testing RY.
-c = Curcuit(1)
-c += RY(pi,0)
-exec(c)
-@test c.density_matrix ≈ [0 0; 0 1]
-
-c = Curcuit(1)
-c += RY(pi/2,0)
-exec(c)
-@test c.density_matrix ≈ [.5 .5; .5 .5]
+@test exec(Curcuit(1, RY(pi,0))) ≈ [0 0; 0 1]
+@test exec(Curcuit(1, RY(pi/2,0))) ≈ [.5 .5; .5 .5]
 
 # Testing RZ.
-
-c = Curcuit(1)
-c += RZ(pi,0)
-exec(c)
-@test c.density_matrix ≈ [1 0; 0 0]
-
-c = Curcuit(1)
-c += H(0)
-c += RZ(pi/2,0)
-exec(c)
-@test c.density_matrix ≈ [.5 -.5im; .5im .5]
+@test exec(Curcuit(1, RZ(pi,0))) ≈ [1 0; 0 0]
+@test exec(Curcuit(1, H(0), RZ(pi/2,0))) ≈ [.5 -.5im; .5im .5]
 
 # Testing SWAP.
+@test exec(Curcuit(2, X(0), SWAP(0,1))) == [0; 0; 1; 0] * [0 0 1 0]
+@test exec(Curcuit(4, X(1), X(0), X(3), CCSWAP(0,3,1,2))) == [0; 1] ⊗ [0; 0; 1; 0] ⊗ [0; 1] * ([0; 1] ⊗ [0; 0; 1; 0] ⊗ [0; 1])'
+# Control-SWAP does nothing because one of the control qubits is 0.
+@test exec(Curcuit(4, X(1), X(3), CCSWAP(0,3,1,2))) == [0; 1] ⊗ [1; 0] ⊗ [0; 1] ⊗ [1; 0] * ([0; 1] ⊗ [1; 0] ⊗ [0; 1] ⊗ [1; 0])'
+@test exec(Curcuit(2, X(0), H(0), SWAP(0,1))) == [1/√2; 0; -1/√2; 0] * [1/√2 0 -1/√2 0]
+@test exec(Curcuit(2, X(0), H(0), SWAP(0,1))) == [1/√2; 0; -1/√2; 0] * [1/√2 0 -1/√2 0]
+@test exec(Curcuit(3, X(0), CSWAP(2,0,1))) == [0; 1; 0; 0; 0; 0; 0; 0] * [0 1 0 0 0 0 0 0]
 
+# Testing adding control bits to a gate.
+@test exec(Curcuit(2, CNOT(1,0))) == exec(Curcuit(2, controlled(1, X(0))))
+@test exec(Curcuit(3, CCNOT(1,2,0))) == exec(Curcuit(3, controlled(1, controlled(2,X(0)))))
+@test exec(Curcuit(3, CCNOT(1,2,0))) == exec(Curcuit(3, controlled(1, controlled(2,X(0)))))
+@test exec(Curcuit(3, CCNOT(1,2,0))) == exec(Curcuit(3, controlled([1,2], X(0))))
+
+# Testing square root of iSWAP.
+@test exec(Curcuit(2, SQiSW(0))) == [1 0 0 0; 0 0 0 0; 0 0 0 0; 0 0 0 0]
+@test exec(Curcuit(2, X(0), SQiSW(0))) ≈ [0; 1/√2; 1im/√2; 0] ⊗ [0; 1/√2; 1im/√2; 0]'
+@test exec(Curcuit(2, X(1), SQiSW(0))) ≈ [0; 1im/√2; 1/√2; 0] ⊗ [0; 1im/√2; 1/√2; 0]'
+@test exec(Curcuit(2, X(0), X(1), SQiSW(0))) == [0 0 0 0; 0 0 0 0; 0 0 0 0; 0 0 0 1]
+
+# Testing += sintax for adding gates.
 c = Curcuit(2)
 c += X(0)
-c += SWAP(0,1)
-exec(c)
-@test c.density_matrix == [0; 0; 1; 0] * [0 0 1 0]
-
-c = Curcuit(4)
 c += X(1)
-c += X(0)
-c += X(3)
-c += CCSWAP(0,3,1,2)
+c += SQiSW(0)
 exec(c)
-@test c.density_matrix == [0; 1] ⊗ [0; 0; 1; 0] ⊗ [0; 1] * ([0; 1] ⊗ [0; 0; 1; 0] ⊗ [0; 1])'
-
-c = Curcuit(4)
-c += X(1)
-c += X(3)
-c += CCSWAP(0,3,1,2) # Control-SWAP does nothing because one of the control qubits is 0.
-exec(c)
-@test c.density_matrix == [0; 1] ⊗ [1; 0] ⊗ [0; 1] ⊗ [1; 0] * ([0; 1] ⊗ [1; 0] ⊗ [0; 1] ⊗ [1; 0])'
-
-c = Curcuit(2)
-c += X(0)
-c += H(0)
-c += SWAP(0,1)
-exec(c)
-@test c.density_matrix == [1/√2; 0; -1/√2; 0] * [1/√2 0 -1/√2 0]
-
-c = Curcuit(2)
-c += X(0)
-c += H(0)
-c += SWAP(0,1)
-exec(c)
-@test c.density_matrix == [1/√2; 0; -1/√2; 0] * [1/√2 0 -1/√2 0]
-
-c = Curcuit(3)
-c += X(0)
-c += CSWAP(2,0,1)
-exec(c)
-@test c.density_matrix == [0; 1; 0; 0; 0; 0; 0; 0] * [0 1 0 0 0 0 0 0]
+@test c.density_matrix == exec(Curcuit(2, X(0), X(1), SQiSW(0)))
 
 # Testing amplitude damping. Amplitude damping causes |1> to decay to |0> with some probability.
-
 # When we start in |0> state, damping kraus with any |1> to |0> decay probability never gets applied,
 # residual kraus always gets applied, so the state doesn't change.
-c = Curcuit(1)
-c += noisify(ID(0), Gates.damping_kraus_map(.1))
-exec(c)
-@test c.density_matrix == [1 0; 0 0]
-
+@test exec(Curcuit(1, noisify(ID(0), Gates.damping_kraus_map(.1)))) == [1 0; 0 0]
 # Starting in |1> state, setting |1> to |0> decay probability to 0.
 # Residual kraus should be applied and the state should remain |1>.
-c = Curcuit(1)
-c += damp_amplitude(X(0), 0.0)
-exec(c)
-@test c.density_matrix == [0 0; 0 1]
-
+@test exec(Curcuit(1, damp_amplitude(X(0), 0.0))) == [0 0; 0 1]
 # Starting in |1> state, setting |1> to |0> decay probability to 1.
 # Damping kraus should be applied and the state should decay to |0>.
-c = Curcuit(1)
-c += damp_amplitude(X(0), 1.0)
-exec(c)
-@test c.density_matrix == [1 0; 0 0]
+@test exec(Curcuit(1, damp_amplitude(X(0), 1.0))) == [1 0; 0 0]
 
 # Starting in |+> state, setting |1> to |0> decay probability to 0.
 # Residual kraus should be applied and the state should remain |1>.
-c = Curcuit(1)
-c += damp_amplitude(H(0), 0.0)
-exec(c)
-@test c.density_matrix ≈ [.5 .5; .5 .5]
+@test exec(Curcuit(1, damp_amplitude(H(0), 0.0))) ≈ [.5 .5; .5 .5]
 
 # Starting in |+> state, setting |1> to |0> decay probability to 1.
 # Damping kraus should be applied and the state should decay to |0>.
-c = Curcuit(1)
-c += damp_amplitude(H(0), 1.0)
-exec(c)
-@test c.density_matrix ≈ [1 0; 0 0]
-
-# Testing adding control bits to a gate.
-
-p1 = Curcuit(2)
-p1 += CNOT(1,0)
-exec(p1)
-p2 = Curcuit(2)
-p2 += controlled(1, X(0))
-exec(p2)
-@test p1.density_matrix == p2.density_matrix
-
-p1 = Curcuit(3)
-p1 += CCNOT(1,2,0)
-exec(p1)
-p2 = Curcuit(3)
-p2 += controlled(1, controlled(2,X(0)))
-exec(p2)
-@test p1.density_matrix == p2.density_matrix
-
-p1 = Curcuit(3)
-p1 += CCNOT(1,2,0)
-exec(p1)
-p2 = Curcuit(3)
-p2 += controlled(1, controlled(2,X(0)))
-exec(p2)
-@test p1.density_matrix == p2.density_matrix
-
-p1 = Curcuit(3)
-p1 += CCNOT(1,2,0)
-exec(p1)
-p2 = Curcuit(3)
-p2 += controlled([1,2], X(0))
-exec(p2)
-@test p1.density_matrix == p2.density_matrix
+@test exec(Curcuit(1, damp_amplitude(H(0), 1.0))) ≈ [1 0; 0 0]
 
 # Testing private functions.
 
@@ -597,20 +340,9 @@ CHH = [1 0 0 0  0   0   0   0;
 
 @test Gates.damping_kraus_map(.1) == [[1 0; 0 √.9], [0 √.1; 0 0]]
 
-@test NoisyQuantumComputerSimulator.value_index_by_probabilities(.0, [.3, .4, .2, .1]) == 1
-@test NoisyQuantumComputerSimulator.value_index_by_probabilities(.35, [.3, .4, .2, .1]) == 2
-@test NoisyQuantumComputerSimulator.value_index_by_probabilities(.8, [.3, .4, .2, .1]) == 3
-@test NoisyQuantumComputerSimulator.value_index_by_probabilities(.95, [.3, .4, .2, .1]) == 4
-@test NoisyQuantumComputerSimulator.value_index_by_probabilities(.9999, [.3, .4, .2, .1]) == 4
-@test NoisyQuantumComputerSimulator.value_index_by_probabilities(1.0, [.3, .4, .2, .1]) == 4
-
-# @test product!([1; 0], I) == [1; 0]
-# @test product!([0; 1], I) == [0; 1]
-# @test product!([1; 0], H) == [1/√2; 1/√2]
-# @test product!([0; 1], H) == [1/√2; -1/√2]
-# @test product!([1 0; 0 0], I) == [1 0; 0 0]
-# @test product!([0 0; 0 1], I) == [0 0; 0 1]
-# @test product!([1 0; 0 0], H) ≈ [0.5 0.5; 0.5 0.5]
-# @test product!([0 0; 0 1], H) ≈ [0.5 -0.5; -0.5 0.5]
-# @test product!([0.5 0.5; 0.5 0.5], H) ≈ [1 0; 0 0]
-# @test product!([0.5 -0.5; -0.5 0.5], H) ≈ [0 0; 0 1]
+@test Curcuits.value_index_by_probabilities(.0, [.3, .4, .2, .1]) == 1
+@test Curcuits.value_index_by_probabilities(.35, [.3, .4, .2, .1]) == 2
+@test Curcuits.value_index_by_probabilities(.8, [.3, .4, .2, .1]) == 3
+@test Curcuits.value_index_by_probabilities(.95, [.3, .4, .2, .1]) == 4
+@test Curcuits.value_index_by_probabilities(.9999, [.3, .4, .2, .1]) == 4
+@test Curcuits.value_index_by_probabilities(1.0, [.3, .4, .2, .1]) == 4
