@@ -28,17 +28,20 @@ mutable struct Curcuit
 end
 
 function add_gate(c::Curcuit, g::Gate)::Curcuit
+	if !isempty(g.control_bit_indexes) && !isempty(g.kraus_operators)
+		error("applying Kraus operators within a gate with control bit(s) is not supported; instead, apply Kraus operators to control and target qubits individually")
+	end
 	for control ∈ g.control_bit_indexes
 		if control < 0 || control >= c.qubit_count
-			error("control bit at index $control is outside of bounds of quantum register [0, $(c.qubit_count-1)]")
+			error("control bit at index $control is outside of bounds of quantum register [0, $(c.qubit_count - 1)]")
 		end
 	end
 	if g.swap_bit_index_a ≠ -1 && g.swap_bit_index_b ≠ -1
 		if g.swap_bit_index_a < 0 || g.swap_bit_index_a >= c.qubit_count
-			error("bit to SWAP at index $(g.swap_bit_index_a) is outside of bounds of quantum register [0, $(c.qubit_count-1)]")
+			error("bit to SWAP at index $(g.swap_bit_index_a) is outside of bounds of quantum register [0, $(c.qubit_count - 1)]")
 		end
 		if g.swap_bit_index_b < 0 || g.swap_bit_index_b >= c.qubit_count
-			error("bit to SWAP at index $(g.swap_bit_index_b) is outside of bounds of quantum register [0, $(c.qubit_count-1)]")
+			error("bit to SWAP at index $(g.swap_bit_index_b) is outside of bounds of quantum register [0, $(c.qubit_count - 1)]")
 		end
 		# build SWAP as a sequence of 3 CNOTs.
 		not_matrix = Matrix{Complex{Float64}}([0 1; 1 0])
@@ -59,7 +62,6 @@ function add_gate(c::Curcuit, g::Gate)::Curcuit
 		add_unitary_gate!(c, g.matrix, g.qubit_index, g.control_bit_indexes)
 	end
 	if size(g.kraus_operators)[1] > 0
-		# TODO: Take case of controlled gates
 		add_noise!(c, g.kraus_operators, g.qubit_index)
 	end
 	return c
@@ -67,7 +69,6 @@ end
 
 # Defining + allows adding gates like this: curcuit += gate
 Base.:+(c::Curcuit, g::Gate) = add_gate(c, g)
-# TODO: Define Base.:+(g::Gate, c::Curcuit) and Base.:+(g1::Gate, g2::Gate) ?
 
 function exec(c::Curcuit)::Array{Complex{Float64}}
 	for command ∈ c.commands
@@ -80,10 +81,9 @@ end
 function add_unitary_gate!(c::Curcuit, 
 	matrix::AbstractMatrix{Complex{Float64}},
 	gate_lowest_index::Integer,
-	control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([])) # TODO: Can it be Integer?
+	control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))
 
 	push!(c.commands, ()->begin
-		# TODO: Should computing of big_matrix be moved above push?
 		big_matrix = expandGateToFullRegister(c.qubit_count, matrix, gate_lowest_index, control_bit_indexes)
 		c.density_matrix = big_matrix * c.density_matrix * big_matrix'
 		return
@@ -96,32 +96,23 @@ function add_noise!(c::Curcuit,
 	kraus_operators::AbstractVector{Matrix{Complex{Float64}}},
 	gate_lowest_index::Integer)
 
-	# println("------------------------------------------------------------------------------------")
-	# println("kraus_operators: $kraus_operators")
 	push!(c.commands, ()->begin
-		# TODO: Should computing of kraus_probabilities and big_kraus_operators be moved above push?
 		kraus_probabilities = Vector{Float64}([])
 		big_kraus_operators = Vector{Matrix{Complex{Float64}}}([])
 		for kraus ∈ kraus_operators
 			big_kraus = expandGateToFullRegister(c.qubit_count, kraus, gate_lowest_index)
-			# println("big_kraus: $big_kraus")
 			trace = tr(big_kraus * c.density_matrix * big_kraus')
 			if imag(trace) ≉ 0
 				error("expected trace be a real value since it's a probability, got $trace")
 			end
 			kraus_probability = real(tr(big_kraus * c.density_matrix * big_kraus'))
-			# println("kraus_probability: $kraus_probability")
 			push!(big_kraus_operators, big_kraus)
 			push!(kraus_probabilities, kraus_probability)
 		end
 		random_kraus_index = random_index(kraus_probabilities)
-		# println("random_kraus_index: $random_kraus_index")
 		big_kraus = big_kraus_operators[random_kraus_index]
-		# println("chosen big_kraus: $big_kraus")
 		big_kraus_probability = kraus_probabilities[random_kraus_index]
-		# println("big_kraus_probability: $big_kraus_probability")
 		c.density_matrix = big_kraus * c.density_matrix * big_kraus' / big_kraus_probability
-		# println("c.density_matrix: $(c.density_matrix)")
 		return
 	end)
 	return
@@ -131,7 +122,6 @@ end
 # Min returned value is 1; max return value is the length of the given array of probabilities.
 function random_index(probabilities::AbstractVector{Float64})
 	random = rand()
-	# println("random: $random")
 	return value_index_by_probabilities(random, probabilities)
 end
 

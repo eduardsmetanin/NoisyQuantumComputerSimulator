@@ -1,15 +1,15 @@
 module Gates
 
-export Gate, ID, X, Y, Z, H, PHASE, S, T, CZ, RX, RY, RZ, CNOT, CCNOT, SWAP, CSWAP, CCSWAP, SQiSW, custom_gate, controlled, noisify, damp_amplitude
+export Gate, ID, X, Y, Z, H, PHASE, S, T, CZ, RX, RY, RZ, CNOT, CCNOT, SWAP, CSWAP, CCSWAP, custom_gate, controlled, noisify, damp_amplitude
 
 const empty_matrix = Matrix{Complex{Float64}}(undef, 0, 0)
-const empty_kraus = Vector{Matrix{Complex{Float64}}}(undef,0)
+const empty_kraus = Vector{Matrix{Complex{Float64}}}(undef, 0)
 
 struct Gate
 	# Gate has either matrix or SWAP bit indexes set. Control bits can be set in either case.
 	matrix::Matrix{Complex{Float64}}
 	qubit_index::Integer
-	control_bit_indexes::AbstractArray{Int64,1} # TODO: Should it be Vector type?
+	control_bit_indexes::AbstractVector{Int64}
 	swap_bit_index_a::Integer
 	swap_bit_index_b::Integer 
 	kraus_operators::AbstractVector{Matrix{Complex{Float64}}}
@@ -39,7 +39,7 @@ struct Gate
 		return new(matrix, qubit_index, control_bit_indexes, -1, -1, kraus_operators)
 	end
 
-	# Constructor that populates all properties; used to create a new gate based on existing gate.
+	# Constructor that populates all properties; used to create a new gate based on existing one.
 	function Gate(matrix::Matrix{Complex{Float64}},
 		qubit_index::Integer,
 		control_bit_indexes::AbstractArray{Int64,1},
@@ -70,19 +70,19 @@ function Z(qubit_index::Integer)::Gate
 end
 
 function H(qubit_index::Integer)::Gate
-	return Gate(Matrix{Complex{Float64}}(1/√2 * [1 1; 1 -1]), qubit_index)
+	return Gate(Matrix{Complex{Float64}}(1 / √2 * [1 1; 1 -1]), qubit_index)
 end
 
 function PHASE(angle::Real, qubit_index::Integer)::Gate
-	return Gate(Matrix{Complex{Float64}}([1 0; 0 exp(complex(0,1)*angle)]), qubit_index)
+	return Gate(Matrix{Complex{Float64}}([1 0; 0 exp(complex(0, 1) * angle)]), qubit_index)
 end
 
 function S(qubit_index::Integer)::Gate
-	return Gate(Matrix{Complex{Float64}}([1 0; 0 complex(0,1)]), qubit_index)
+	return Gate(Matrix{Complex{Float64}}([1 0; 0 complex(0, 1)]), qubit_index)
 end
 
 function T(qubit_index::Integer)::Gate
-	return Gate(Matrix{Complex{Float64}}([1 0; 0 1/√2+1im/√2]), qubit_index)
+	return Gate(Matrix{Complex{Float64}}([1 0; 0 1 / √2 + 1im / √2]), qubit_index)
 end
 
 function CZ(control_index::Integer, target_index::Integer)::Gate
@@ -90,15 +90,15 @@ function CZ(control_index::Integer, target_index::Integer)::Gate
 end
 
 function RX(angle::Real, qubit_index::Integer)::Gate
-	return Gate(Matrix{Complex{Float64}}([cos(angle/2) complex(0,-1)*sin(angle/2); complex(0,-1)*sin(angle/2) cos(angle/2)]), qubit_index)
+	return Gate(Matrix{Complex{Float64}}([cos(angle / 2) complex(0, -1) * sin(angle / 2); complex(0, -1) * sin(angle / 2) cos(angle / 2)]), qubit_index)
 end
 
 function RY(angle::Real, qubit_index::Integer)::Gate
-	return Gate(Matrix{Complex{Float64}}([cos(angle/2) -sin(angle/2); sin(angle/2) cos(angle/2)]), qubit_index)
+	return Gate(Matrix{Complex{Float64}}([cos(angle / 2) -sin(angle / 2); sin(angle / 2) cos(angle / 2)]), qubit_index)
 end
 
 function RZ(angle::Real, qubit_index::Integer)::Gate
-	return Gate(Matrix{Complex{Float64}}([exp(complex(0,-1)*angle/2) 0; 0 exp(complex(0,1)*angle/2)]), qubit_index)
+	return Gate(Matrix{Complex{Float64}}([exp(complex(0, -1) * angle / 2) 0; 0 exp(complex(0, 1) * angle / 2)]), qubit_index)
 end
 
 function CNOT(control_index::Integer, target_index::Integer)::Gate
@@ -121,11 +121,6 @@ function CCSWAP(control_index_a::Integer, control_index_b::Integer, swap_bit_ind
 	return Gate(swap_bit_index_a, swap_bit_index_b, [control_index_a, control_index_b])
 end
 
-# TODO: Figure out how to be able to accept 2 indexes and to be able to square-root-iswap non-adjacent qubits.
-function SQiSW(qubit_index::Integer)::Gate
-	return Gate(Matrix{Complex{Float64}}([1 0 0 0; 0 1/√2 complex(0,1/√2) 0; 0 complex(0,1/√2) 1/√2 0; 0 0 0 1]), qubit_index)
-end
-
 function custom_gate(matrix::Matrix{Complex{Float64}}, qubit_index::Integer, control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))::Gate
 	return Gate(matrix, qubit_index, control_bit_indexes)
 end
@@ -144,9 +139,8 @@ function controlled(control_bit_indexes::AbstractArray{Int64,1}, g::Gate)::Gate
 end
 
 function noisify(g::Gate, kraus_operators::AbstractVector{Matrix{Complex{Float64}}})::Gate
-	# return Gate(matrix, gate_lowest_index, kraus_operators)
 	if size(g.kraus_operators)[1] > 0
-		error("cannot apply Kraus operators to a gate that already has Kraus operators applied")
+		error("cannot apply Kraus operators to a gate that already has Kraus operators applied to")
 	end
 	return Gate(g.matrix,
 		g.qubit_index,
@@ -156,11 +150,9 @@ function noisify(g::Gate, kraus_operators::AbstractVector{Matrix{Complex{Float64
 		kraus_operators)
 end
 
-damping_residual_kraus(decay_1_to_0_probability = .1) = Matrix{Complex{Float64}}([1 0; 0 √(1-decay_1_to_0_probability)])
+damping_residual_kraus(decay_1_to_0_probability = .1) = Matrix{Complex{Float64}}([1 0; 0 √(1 - decay_1_to_0_probability)])
 damping_kraus(decay_1_to_0_probability = .1) = Matrix{Complex{Float64}}([0 √decay_1_to_0_probability; 0 0])
 damping_kraus_map(decay_1_to_0_probability = .1) = [damping_residual_kraus(decay_1_to_0_probability), damping_kraus(decay_1_to_0_probability)]
-# TODO: pauli_kraus_map
-# TODO: dephasing_kraus_map
 
 # damp_amplitude adds noise via amplitude damping kraus operators with given probability of decay |1> to |0>.
 function damp_amplitude(g::Gate, ket1_to_ket0_decay_probability::Real)

@@ -7,7 +7,7 @@ using Curcuits.Gates
 ⊗ = kron
 
 matrix_I = Matrix{Complex{Float64}}([1 0; 0 1])
-matrix_H = Matrix{Complex{Float64}}(1/√2 * [1 1; 1 -1])
+matrix_H = Matrix{Complex{Float64}}(1 / √2 * [1 1; 1 -1])
 matrix_X = Matrix{Complex{Float64}}([0 1; 1 0])
 matrix_S = Matrix{Complex{Float64}}([1 0; 0 complex(0, 1)])
 
@@ -29,17 +29,17 @@ c = Curcuit(3)
 
 # Testing CNOT.
 
-BELL = 1/√2 * [1 0 1 0; 0 1 0 1; 0 1 0 -1; 1 0 -1 0] # (CX)(H⊗I)
+BELL = 1 / √2 * [1 0 1 0; 0 1 0 1; 0 1 0 -1; 1 0 -1 0] # (CX)(H⊗I)
 BELL₀ = BELL * [1; 0; 0; 0]
 BELL₁ = BELL * [0; 1; 0; 0]
 BELL₂ = BELL * [0; 0; 1; 0]
 BELL₃ = BELL * [0; 0; 0; 1]
 
-@test exec(Curcuit(2, H(1), CNOT(1,0))) == BELL₀ * BELL₀'
-@test exec(Curcuit(2, X(0), H(1), CNOT(1,0))) == BELL₁ * BELL₁'
-@test exec(Curcuit(2, X(1), H(1), CNOT(1,0))) == BELL₂ * BELL₂'
-@test exec(Curcuit(2, X(0), X(1), H(1), CNOT(1,0))) == BELL₃ * BELL₃'
-@test exec(Curcuit(4, H(2), CNOT(2,1))) ≈ ([1; 0] ⊗ BELL₀ ⊗ [1; 0]) * ([1 0] ⊗ BELL₀' ⊗ [1 0])
+@test exec(Curcuit(2, H(1), CNOT(1, 0))) == BELL₀ * BELL₀'
+@test exec(Curcuit(2, X(0), H(1), CNOT(1, 0))) == BELL₁ * BELL₁'
+@test exec(Curcuit(2, X(1), H(1), CNOT(1, 0))) == BELL₂ * BELL₂'
+@test exec(Curcuit(2, X(0), X(1), H(1), CNOT(1, 0))) == BELL₃ * BELL₃'
+@test exec(Curcuit(4, H(2), CNOT(2, 1))) ≈ ([1; 0] ⊗ BELL₀ ⊗ [1; 0]) * ([1 0] ⊗ BELL₀' ⊗ [1 0])
 
 # Testing CCNOT.
 
@@ -60,20 +60,20 @@ CCBELL₅ = CCBELL * [0; 0; 0; 0; 0; 1; 0; 0]
 CCBELL₆ = CCBELL * [0; 0; 0; 0; 0; 0; 1; 0]
 CCBELL₇ = CCBELL * [0; 0; 0; 0; 0; 0; 0; 1]
 
-@test exec(Curcuit(3, H(0), H(2), CCNOT(0,2,1))) ≈ CCBELL₀ * CCBELL₀'
-@test exec(Curcuit(3, X(0), H(0), H(2), CCNOT(0,2,1))) ≈ CCBELL₁ * CCBELL₁'
-@test exec(Curcuit(3, X(1), H(0), H(2), CCNOT(0,2,1))) ≈ CCBELL₂ * CCBELL₂'
-@test exec(Curcuit(3, X(0), X(1), H(0), H(2), CCNOT(0,2,1))) ≈ CCBELL₃ * CCBELL₃'
-@test exec(Curcuit(3, X(2), H(0), H(2), CCNOT(0,2,1))) ≈ CCBELL₄ * CCBELL₄'
-@test exec(Curcuit(3, X(0), X(2), H(0), H(2), CCNOT(0,2,1))) ≈ CCBELL₅ * CCBELL₅'
-@test exec(Curcuit(3, X(1), X(2), H(0), H(2), CCNOT(0,2,1))) ≈ CCBELL₆ * CCBELL₆'
-@test exec(Curcuit(3, X(0), X(1), X(2), H(0), H(2), custom_gate(matrix_X,1,[0,2]))) ≈ CCBELL₇ * CCBELL₇'
+@test exec(Curcuit(3, H(0), H(2), CCNOT(0, 2, 1))) ≈ CCBELL₀ * CCBELL₀'
+@test exec(Curcuit(3, X(0), H(0), H(2), CCNOT(0, 2, 1))) ≈ CCBELL₁ * CCBELL₁'
+@test exec(Curcuit(3, X(1), H(0), H(2), CCNOT(0, 2, 1))) ≈ CCBELL₂ * CCBELL₂'
+@test exec(Curcuit(3, X(0), X(1), H(0), H(2), CCNOT(0, 2, 1))) ≈ CCBELL₃ * CCBELL₃'
+@test exec(Curcuit(3, X(2), H(0), H(2), CCNOT(0, 2, 1))) ≈ CCBELL₄ * CCBELL₄'
+@test exec(Curcuit(3, X(0), X(2), H(0), H(2), CCNOT(0, 2, 1))) ≈ CCBELL₅ * CCBELL₅'
+@test exec(Curcuit(3, X(1), X(2), H(0), H(2), CCNOT(0, 2, 1))) ≈ CCBELL₆ * CCBELL₆'
+@test exec(Curcuit(3, X(0), X(1), X(2), H(0), H(2), custom_gate(matrix_X, 1, [0,2]))) ≈ CCBELL₇ * CCBELL₇'
 
 # Testing X.
 @test exec(Curcuit(1, X(0))) == [0 0; 0 1]
-@test exec(Curcuit(1, custom_gate(matrix_X,0), X(0))) == [1 0; 0 0]
+@test exec(Curcuit(1, custom_gate(matrix_X, 0), X(0))) == [1 0; 0 0]
 @test exec(Curcuit(1, H(0), X(0))) ≈ [.5 .5; .5 .5]
-@test exec(Curcuit(1, custom_gate(matrix_X,0), H(0), X(0))) ≈ [.5 -.5; -.5 .5]
+@test exec(Curcuit(1, custom_gate(matrix_X, 0), H(0), X(0))) ≈ [.5 -.5; -.5 .5]
 
 # Testing Y.
 @test exec(Curcuit(1, Y(0))) == [0 0; 0 1]
@@ -89,58 +89,51 @@ CCBELL₇ = CCBELL * [0; 0; 0; 0; 0; 0; 0; 1]
 @test exec(Curcuit(1, H(0))) ≈ [.5 .5; .5 .5]
 
 # Testing PHASE.
-@test exec(Curcuit(1, H(0), PHASE(pi/2, 0))) ≈ [.5 complex(0,-.5); complex(0,.5) .5]
+@test exec(Curcuit(1, H(0), PHASE(pi / 2, 0))) ≈ [.5 complex(0, -.5); complex(0, .5) .5]
 
 # Testing S.
 @test exec(Curcuit(1, H(0), S(0))) ≈ [.5 -.5im; .5im .5]
 @test exec(Curcuit(1, X(0), H(0), S(0))) ≈ [.5 .5im; -.5im .5]
 
 # Testing T.
-@test exec(Curcuit(1, H(0), T(0))) ≈ [.5 (1-1im)/(2*sqrt(2)); (1+1im)/(2*sqrt(2)) .5]
+@test exec(Curcuit(1, H(0), T(0))) ≈ [.5 (1 - 1im) / (2 * sqrt(2)); (1 + 1im) / (2 * sqrt(2)) .5]
 
 # Testing CZ.
-@test exec(Curcuit(2, H(0), H(1), CZ(1,0))) ≈ [.5; .5; .5; -.5] * [.5 .5 .5 -.5]
+@test exec(Curcuit(2, H(0), H(1), CZ(1, 0))) ≈ [.5; .5; .5; -.5] * [.5 .5 .5 -.5]
 
 # Testing RX.
-@test exec(Curcuit(1, RX(pi,0))) ≈ [0 0; 0 1]
-@test exec(Curcuit(1, RX(pi/2,0))) ≈ [.5 .5im; -.5im .5]
+@test exec(Curcuit(1, RX(pi, 0))) ≈ [0 0; 0 1]
+@test exec(Curcuit(1, RX(pi / 2, 0))) ≈ [.5 .5im; -.5im .5]
 
 # Testing RY.
-@test exec(Curcuit(1, RY(pi,0))) ≈ [0 0; 0 1]
-@test exec(Curcuit(1, RY(pi/2,0))) ≈ [.5 .5; .5 .5]
+@test exec(Curcuit(1, RY(pi, 0))) ≈ [0 0; 0 1]
+@test exec(Curcuit(1, RY(pi / 2, 0))) ≈ [.5 .5; .5 .5]
 
 # Testing RZ.
-@test exec(Curcuit(1, RZ(pi,0))) ≈ [1 0; 0 0]
-@test exec(Curcuit(1, H(0), RZ(pi/2,0))) ≈ [.5 -.5im; .5im .5]
+@test exec(Curcuit(1, RZ(pi, 0))) ≈ [1 0; 0 0]
+@test exec(Curcuit(1, H(0), RZ(pi / 2, 0))) ≈ [.5 -.5im; .5im .5]
 
 # Testing SWAP.
-@test exec(Curcuit(2, X(0), SWAP(0,1))) == [0; 0; 1; 0] * [0 0 1 0]
-@test exec(Curcuit(4, X(1), X(0), X(3), CCSWAP(0,3,1,2))) == [0; 1] ⊗ [0; 0; 1; 0] ⊗ [0; 1] * ([0; 1] ⊗ [0; 0; 1; 0] ⊗ [0; 1])'
+@test exec(Curcuit(2, X(0), SWAP(0, 1))) == [0; 0; 1; 0] * [0 0 1 0]
+@test exec(Curcuit(4, X(1), X(0), X(3), CCSWAP(0, 3, 1, 2))) == [0; 1] ⊗ [0; 0; 1; 0] ⊗ [0; 1] * ([0; 1] ⊗ [0; 0; 1; 0] ⊗ [0; 1])'
 # Control-SWAP does nothing because one of the control qubits is 0.
-@test exec(Curcuit(4, X(1), X(3), CCSWAP(0,3,1,2))) == [0; 1] ⊗ [1; 0] ⊗ [0; 1] ⊗ [1; 0] * ([0; 1] ⊗ [1; 0] ⊗ [0; 1] ⊗ [1; 0])'
-@test exec(Curcuit(2, X(0), H(0), SWAP(0,1))) == [1/√2; 0; -1/√2; 0] * [1/√2 0 -1/√2 0]
-@test exec(Curcuit(2, X(0), H(0), SWAP(0,1))) == [1/√2; 0; -1/√2; 0] * [1/√2 0 -1/√2 0]
-@test exec(Curcuit(3, X(0), CSWAP(2,0,1))) == [0; 1; 0; 0; 0; 0; 0; 0] * [0 1 0 0 0 0 0 0]
+@test exec(Curcuit(4, X(1), X(3), CCSWAP(0, 3, 1, 2))) == [0; 1] ⊗ [1; 0] ⊗ [0; 1] ⊗ [1; 0] * ([0; 1] ⊗ [1; 0] ⊗ [0; 1] ⊗ [1; 0])'
+@test exec(Curcuit(2, X(0), H(0), SWAP(0, 1))) == [1 / √2; 0; -1 / √2; 0] * [1 / √2 0 -1 / √2 0]
+@test exec(Curcuit(2, X(0), H(0), SWAP(0, 1))) == [1 / √2; 0; -1 / √2; 0] * [1 / √2 0 -1 / √2 0]
+@test exec(Curcuit(3, X(0), CSWAP(2, 0, 1))) == [0; 1; 0; 0; 0; 0; 0; 0] * [0 1 0 0 0 0 0 0]
 
 # Testing adding control bits to a gate.
-@test exec(Curcuit(2, CNOT(1,0))) == exec(Curcuit(2, controlled(1, X(0))))
-@test exec(Curcuit(3, CCNOT(1,2,0))) == exec(Curcuit(3, controlled(1, controlled(2,X(0)))))
-@test exec(Curcuit(3, CCNOT(1,2,0))) == exec(Curcuit(3, controlled(1, controlled(2,X(0)))))
-@test exec(Curcuit(3, CCNOT(1,2,0))) == exec(Curcuit(3, controlled([1,2], X(0))))
-
-# Testing square root of iSWAP.
-@test exec(Curcuit(2, SQiSW(0))) == [1 0 0 0; 0 0 0 0; 0 0 0 0; 0 0 0 0]
-@test exec(Curcuit(2, X(0), SQiSW(0))) ≈ [0; 1/√2; 1im/√2; 0] ⊗ [0; 1/√2; 1im/√2; 0]'
-@test exec(Curcuit(2, X(1), SQiSW(0))) ≈ [0; 1im/√2; 1/√2; 0] ⊗ [0; 1im/√2; 1/√2; 0]'
-@test exec(Curcuit(2, X(0), X(1), SQiSW(0))) == [0 0 0 0; 0 0 0 0; 0 0 0 0; 0 0 0 1]
+@test exec(Curcuit(2, CNOT(1, 0))) == exec(Curcuit(2, controlled(1, X(0))))
+@test exec(Curcuit(3, CCNOT(1, 2, 0))) == exec(Curcuit(3, controlled(1, controlled(2, X(0)))))
+@test exec(Curcuit(3, CCNOT(1, 2, 0))) == exec(Curcuit(3, controlled(1, controlled(2, X(0)))))
+@test exec(Curcuit(3, CCNOT(1, 2, 0))) == exec(Curcuit(3, controlled([1,2], X(0))))
 
 # Testing += sintax for adding gates.
 c = Curcuit(2)
 c += X(0)
 c += X(1)
-c += SQiSW(0)
 exec(c)
-@test c.density_matrix == exec(Curcuit(2, X(0), X(1), SQiSW(0)))
+@test c.density_matrix == exec(Curcuit(2, X(0), X(1)))
 
 # Testing amplitude damping. Amplitude damping causes |1> to decay to |0> with some probability.
 # When we start in |0> state, damping kraus with any |1> to |0> decay probability never gets applied,
@@ -251,7 +244,7 @@ CXIC = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
         0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0;
         0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0]
 
-τ = 1/√2
+τ = 1 / √2
 CHIC = [1 0 0 0 0 0 0 0 0 0 0 0 0  0 0  0;
         0 1 0 0 0 0 0 0 0 0 0 0 0  0 0  0;
         0 0 1 0 0 0 0 0 0 0 0 0 0  0 0  0;
@@ -305,7 +298,7 @@ CHH = [1 0 0 0  0   0   0   0;
 @test expandGateToFullRegister(7, matrix_X, 5, [3,6]) == CXIC ⊗ matrix_I ⊗ matrix_I ⊗ matrix_I
 @test expandGateToFullRegister(6, matrix_X, 3, [1,4]) == matrix_I ⊗ CXIC ⊗ matrix_I
 @test expandGateToFullRegister(1, matrix_S, 0) == matrix_S
-#Testing asymmetric gates to ensure the gate doesn't get transposed by mistake.
+# Testing asymmetric gates to ensure the gate doesn't get transposed by mistake.
 @test expandGateToFullRegister(1, Gates.damping_residual_kraus(), 0) == Gates.damping_residual_kraus()
 @test expandGateToFullRegister(3, Gates.damping_residual_kraus(), 1) == matrix_I ⊗ Gates.damping_residual_kraus() ⊗ matrix_I
 @test expandGateToFullRegister(4, Gates.damping_residual_kraus(), 2) == matrix_I ⊗ Gates.damping_residual_kraus() ⊗ matrix_I ⊗ matrix_I
