@@ -1,6 +1,6 @@
 module Curcuits
 
-export Curcuit, exec
+export Curcuit, exec, reset_state!
 
 include("FullRegisterGate.jl")
 include("Gates.jl")
@@ -11,7 +11,7 @@ using .Gates
 
 mutable struct Curcuit
 	qubit_count::Int
-	density_matrix::Array{Complex{Float64}}
+	density_matrix::Matrix{Complex{Float64}}
 	commands::Array{Function}
 
 	# Curcuit creates quantum register with the given size and sets it's value to |0⟩.
@@ -25,6 +25,12 @@ mutable struct Curcuit
 		end
 		return curcuit
 	end
+end
+
+# reset_state! sets quantum register state to |0⟩.
+function reset_state!(c::Curcuit)
+	c.density_matrix .= complex(0.0, 0.0)
+	c.density_matrix[1,1] = 1
 end
 
 function add_gate(c::Curcuit, g::Gate)::Curcuit
@@ -47,19 +53,11 @@ function add_gate(c::Curcuit, g::Gate)::Curcuit
 		not_matrix = Matrix{Complex{Float64}}([0 1; 1 0])
 		controls_a = vcat(g.swap_bit_index_a, g.control_bit_indexes)
 		controls_b = vcat(g.swap_bit_index_b, g.control_bit_indexes)
-		add_unitary_gate!(c, not_matrix, g.swap_bit_index_a, controls_b)
-		add_unitary_gate!(c, not_matrix, g.swap_bit_index_b, controls_a)
-		add_unitary_gate!(c, not_matrix, g.swap_bit_index_a, controls_b)
+		add_unitary_gate!(c, not_matrix, ()->(), g.swap_bit_index_a, controls_b)
+		add_unitary_gate!(c, not_matrix, ()->(), g.swap_bit_index_b, controls_a)
+		add_unitary_gate!(c, not_matrix, ()->(), g.swap_bit_index_a, controls_b)
 	else
-		matrix_size = size(g.matrix)[1]
-		if matrix_size == 0
-			error("matrix is empty")
-		end
-		gate_size = Int(log2(matrix_size))
-		if g.qubit_index < 0 || g.qubit_index + gate_size > c.qubit_count
-			error("quantum register of size $(c.qubit_count) cannot fit given gate of size $(gate_size) at index $(g.qubit_index)")
-		end
-		add_unitary_gate!(c, g.matrix, g.qubit_index, g.control_bit_indexes)
+		add_unitary_gate!(c, g.matrix, g.matrix_func, g.qubit_index, g.control_bit_indexes)
 	end
 	if size(g.kraus_operators)[1] > 0
 		add_noise!(c, g.kraus_operators, g.qubit_index)
@@ -70,9 +68,9 @@ end
 # Defining + allows adding gates like this: curcuit += gate
 Base.:+(c::Curcuit, g::Gate) = add_gate(c, g)
 
-function exec(c::Curcuit)::Array{Complex{Float64}}
+function exec(c::Curcuit, params::Dict{String,Float64} = Dict{String,Float64}())::Array{Complex{Float64}}
 	for command ∈ c.commands
-		command()
+		command(params)
 	end
 	return c.density_matrix
 end
@@ -80,11 +78,21 @@ end
 # add_unitary_gate! adds the given unitary gate with optional control bits to the given curcuit.
 function add_unitary_gate!(c::Curcuit, 
 	matrix::AbstractMatrix{Complex{Float64}},
+	matrix_func::Function,
 	gate_lowest_index::Integer,
 	control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))
 
-	push!(c.commands, ()->begin
-		big_matrix = expandGateToFullRegister(c.qubit_count, matrix, gate_lowest_index, control_bit_indexes)
+	push!(c.commands, (params::Dict{String,Float64})->begin
+		small_matrix = !isempty(matrix) ? matrix : matrix_func(params)
+		matrix_size = size(small_matrix)[1]
+		if matrix_size == 0
+			error("matrix is empty")
+		end
+		gate_size = Int(log2(matrix_size))
+		if gate_lowest_index < 0 || gate_lowest_index + gate_size > c.qubit_count
+			error("quantum register of size $(c.qubit_count) cannot fit given gate of size $(gate_size) at index $(gate_lowest_index)")
+		end
+		big_matrix = expandGateToFullRegister(c.qubit_count, small_matrix, gate_lowest_index, control_bit_indexes)
 		c.density_matrix = big_matrix * c.density_matrix * big_matrix'
 		return
 	end)
@@ -96,7 +104,7 @@ function add_noise!(c::Curcuit,
 	kraus_operators::AbstractVector{Matrix{Complex{Float64}}},
 	gate_lowest_index::Integer)
 
-	push!(c.commands, ()->begin
+	push!(c.commands, (params::Dict{String,Float64})->begin
 		kraus_probabilities = Vector{Float64}([])
 		big_kraus_operators = Vector{Matrix{Complex{Float64}}}([])
 		for kraus ∈ kraus_operators

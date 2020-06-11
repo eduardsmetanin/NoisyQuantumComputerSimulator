@@ -27,6 +27,12 @@ c = Curcuit(3)
                            0 0 0 0 0 0 0 0;
                            0 0 0 0 0 0 0 0]
 
+# Testing reset_state!
+c = Curcuit(1, H(0))
+@test exec(c) ≈ [.5 .5; .5 .5]
+reset_state!(c)
+@test c.density_matrix == [1 0; 0 0]
+
 # Testing CNOT.
 
 BELL = 1 / √2 * [1 0 1 0; 0 1 0 1; 0 1 0 -1; 1 0 -1 0] # (CX)(H⊗I)
@@ -105,13 +111,32 @@ CCBELL₇ = CCBELL * [0; 0; 0; 0; 0; 0; 0; 1]
 @test exec(Curcuit(1, RX(pi, 0))) ≈ [0 0; 0 1]
 @test exec(Curcuit(1, RX(pi / 2, 0))) ≈ [.5 .5im; -.5im .5]
 
+# Testing parametric RX.
+c = Curcuit(1, RX("theta", 0))
+@test exec(c, Dict("theta" => Float64(pi))) ≈ [0 0; 0 1]
+reset_state!(c)
+@test exec(c, Dict("theta" => Float64(pi / 2))) ≈ 1 / 2 * [1 1im; -1im 1]
+
 # Testing RY.
 @test exec(Curcuit(1, RY(pi, 0))) ≈ [0 0; 0 1]
 @test exec(Curcuit(1, RY(pi / 2, 0))) ≈ [.5 .5; .5 .5]
 
+# Testing parametric RY.
+c = Curcuit(1, RY("theta", 0))
+@test exec(c, Dict("theta" => Float64(pi))) ≈ [0 0; 0 1]
+reset_state!(c)
+@test exec(c, Dict("theta" => Float64(pi / 2))) ≈ [.5 .5; .5 .5]
+
 # Testing RZ.
 @test exec(Curcuit(1, RZ(pi, 0))) ≈ [1 0; 0 0]
+@test exec(Curcuit(1, H(0), RZ(pi, 0))) ≈ [.5 -.5; -.5 .5]
 @test exec(Curcuit(1, H(0), RZ(pi / 2, 0))) ≈ [.5 -.5im; .5im .5]
+
+# Testing parametric RZ.
+c = Curcuit(1, H(0), RZ("theta", 0))
+@test exec(c, Dict("theta" => Float64(pi))) ≈ [.5 -.5; -.5 .5]
+reset_state!(c)
+@test exec(c, Dict("theta" => Float64(pi / 2))) ≈ [.5 -.5im; .5im .5]
 
 # Testing SWAP.
 @test exec(Curcuit(2, X(0), SWAP(0, 1))) == [0; 0; 1; 0] * [0 0 1 0]

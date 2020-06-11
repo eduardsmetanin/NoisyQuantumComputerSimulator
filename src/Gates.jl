@@ -8,18 +8,27 @@ const empty_kraus = Vector{Matrix{Complex{Float64}}}(undef, 0)
 struct Gate
 	# Gate has either matrix or SWAP bit indexes set. Control bits can be set in either case.
 	matrix::Matrix{Complex{Float64}}
+	matrix_func::Function
 	qubit_index::Integer
 	control_bit_indexes::AbstractVector{Int64}
 	swap_bit_index_a::Integer
 	swap_bit_index_b::Integer 
 	kraus_operators::AbstractVector{Matrix{Complex{Float64}}}
 
-	# Constructor for all ideal gates except for SWAP.
+	# Constructor for ideal gates except for SWAP.
 	function Gate(matrix::Matrix{Complex{Float64}},
 		qubit_index::Integer,
 		control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))
 
-		return new(matrix, qubit_index, control_bit_indexes, -1, -1, empty_kraus)
+		return new(matrix, ()->(), qubit_index, control_bit_indexes, -1, -1, empty_kraus)
+	end
+
+	# Constructor for parametric gates.
+	function Gate(matrix_func::Function,
+		qubit_index::Integer,
+		control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))
+
+		return new(empty_matrix, matrix_func, qubit_index, control_bit_indexes, -1, -1, empty_kraus)
 	end
 
 	# Constructor for SWAP gates, including controlled once.
@@ -27,7 +36,7 @@ struct Gate
 		swap_bit_index_b::Integer,
 		control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))
 
-		return new(empty_matrix, -1, control_bit_indexes, swap_bit_index_a, swap_bit_index_b, empty_kraus)
+		return new(empty_matrix, ()->(), -1, control_bit_indexes, swap_bit_index_a, swap_bit_index_b, empty_kraus)
 	end
 
 	# Constructor for noisy gates.
@@ -36,18 +45,19 @@ struct Gate
 		kraus_operators::AbstractVector{Matrix{Complex{Float64}}},
 		control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))
 
-		return new(matrix, qubit_index, control_bit_indexes, -1, -1, kraus_operators)
+		return new(matrix, ()->(), qubit_index, control_bit_indexes, -1, -1, kraus_operators)
 	end
 
 	# Constructor that populates all properties; used to create a new gate based on existing one.
 	function Gate(matrix::Matrix{Complex{Float64}},
+		matrix_func::Function,
 		qubit_index::Integer,
 		control_bit_indexes::AbstractArray{Int64,1},
 		swap_bit_index_a::Integer,
 		swap_bit_index_b::Integer,
 		kraus_operators::AbstractVector{Matrix{Complex{Float64}}})
 
-		return new(matrix, qubit_index, control_bit_indexes, swap_bit_index_a, swap_bit_index_b, kraus_operators)
+		return new(matrix, matrix_func, qubit_index, control_bit_indexes, swap_bit_index_a, swap_bit_index_b, kraus_operators)
 	end
 end
 
@@ -93,12 +103,36 @@ function RX(angle::Real, qubit_index::Integer)::Gate
 	return Gate(Matrix{Complex{Float64}}([cos(angle / 2) complex(0, -1) * sin(angle / 2); complex(0, -1) * sin(angle / 2) cos(angle / 2)]), qubit_index)
 end
 
+function RX(param_name::String, qubit_index::Integer)::Gate
+	matrix_func = function (params)
+		angle = params[param_name]
+		return Matrix{Complex{Float64}}([cos(angle / 2) complex(0, -1) * sin(angle / 2); complex(0, -1) * sin(angle / 2) cos(angle / 2)])
+	end
+	return Gate(matrix_func, qubit_index)
+end
+
 function RY(angle::Real, qubit_index::Integer)::Gate
 	return Gate(Matrix{Complex{Float64}}([cos(angle / 2) -sin(angle / 2); sin(angle / 2) cos(angle / 2)]), qubit_index)
 end
 
+function RY(param_name::String, qubit_index::Integer)::Gate
+	matrix_func = function (params)
+		angle = params[param_name]
+		return Matrix{Complex{Float64}}([cos(angle / 2) -sin(angle / 2); sin(angle / 2) cos(angle / 2)])
+	end
+	return Gate(matrix_func, qubit_index)
+end
+
 function RZ(angle::Real, qubit_index::Integer)::Gate
 	return Gate(Matrix{Complex{Float64}}([exp(complex(0, -1) * angle / 2) 0; 0 exp(complex(0, 1) * angle / 2)]), qubit_index)
+end
+
+function RZ(param_name::String, qubit_index::Integer)::Gate
+	matrix_func = function (params)
+		angle = params[param_name]
+		return Matrix{Complex{Float64}}([exp(complex(0, -1) * angle / 2) 0; 0 exp(complex(0, 1) * angle / 2)])
+	end
+	return Gate(matrix_func, qubit_index)
 end
 
 function CNOT(control_index::Integer, target_index::Integer)::Gate
@@ -131,6 +165,7 @@ end
 
 function controlled(control_bit_indexes::AbstractArray{Int64,1}, g::Gate)::Gate
 	return Gate(g.matrix,
+		g.matrix_func,
 		g.qubit_index,
 		vcat(g.control_bit_indexes, control_bit_indexes),
 		g.swap_bit_index_a,
@@ -143,6 +178,7 @@ function noisify(g::Gate, kraus_operators::AbstractVector{Matrix{Complex{Float64
 		error("cannot apply Kraus operators to a gate that already has Kraus operators applied to")
 	end
 	return Gate(g.matrix,
+		g.matrix_func,
 		g.qubit_index,
 		g.control_bit_indexes,
 		g.swap_bit_index_a,
