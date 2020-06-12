@@ -1,5 +1,4 @@
 using Test
-using LinearAlgebra
 using NoisyQuantumComputerSimulator
 sim = NoisyQuantumComputerSimulator
 
