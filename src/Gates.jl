@@ -1,6 +1,6 @@
 module Gates
 
-export Gate, ID, X, Y, Z, H, PHASE, S, T, CZ, RX, RY, RZ, CNOT, CCNOT, SWAP, CSWAP, CCSWAP, custom_gate, controlled, noisify, damp_amplitude
+export Gate, ID, X, Y, Z, H, PHASE, S, T, CZ, RX, RY, RZ, CNOT, CCNOT, SWAP, CSWAP, CCSWAP, controlled, noisify, damp_amplitude
 
 const empty_matrix = Matrix{Complex{Float64}}(undef, 0, 0)
 const empty_kraus = Vector{Matrix{Complex{Float64}}}(undef, 0)
@@ -153,14 +153,6 @@ end
 
 function CCSWAP(control_index_a::Integer, control_index_b::Integer, swap_bit_index_a::Integer, swap_bit_index_b::Integer)::Gate
 	return Gate(swap_bit_index_a, swap_bit_index_b, [control_index_a, control_index_b])
-end
-
-function custom_gate(matrix::Matrix{Complex{Float64}}, qubit_index::Integer, control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))::Gate
-	return Gate(matrix, qubit_index, control_bit_indexes)
-end
-
-function custom_gate(matrix_func::Function, qubit_index::Integer, control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))::Gate
-	return Gate(matrix_func, qubit_index, control_bit_indexes)
 end
 
 function controlled(control_bit_index::Integer, g::Gate)::Gate

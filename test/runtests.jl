@@ -73,7 +73,7 @@ CCBELL₇ = CCBELL * [0; 0; 0; 0; 0; 0; 0; 1]
 @test exec(Curcuit(3, X(2), H(0), H(2), CCNOT(0, 2, 1))) ≈ CCBELL₄ * CCBELL₄'
 @test exec(Curcuit(3, X(0), X(2), H(0), H(2), CCNOT(0, 2, 1))) ≈ CCBELL₅ * CCBELL₅'
 @test exec(Curcuit(3, X(1), X(2), H(0), H(2), CCNOT(0, 2, 1))) ≈ CCBELL₆ * CCBELL₆'
-@test exec(Curcuit(3, X(0), X(1), X(2), H(0), H(2), custom_gate(matrix_X, 1, [0,2]))) ≈ CCBELL₇ * CCBELL₇'
+@test exec(Curcuit(3, X(0), X(1), X(2), H(0), H(2), Gate(matrix_X, 1, [0,2]))) ≈ CCBELL₇ * CCBELL₇'
 
 # Testing X.
 @test exec(Curcuit(1, X(0))) == [0 0; 0 1]
@@ -145,11 +145,11 @@ c = Curcuit(1, H(0), RZ("theta", 0))
 reset_state!(c)
 @test exec(c, Dict("theta" => Float64(pi / 2))) ≈ [.5 -.5im; .5im .5]
 
-# Testing custom_gate without parameters.
-@test exec(Curcuit(1, custom_gate(matrix_X, 0), X(0))) == [1 0; 0 0]
-@test exec(Curcuit(1, custom_gate(matrix_X, 0), H(0), X(0))) ≈ [.5 -.5; -.5 .5]
+# Testing custom gate without parameters.
+@test exec(Curcuit(1, Gate(matrix_X, 0), X(0))) == [1 0; 0 0]
+@test exec(Curcuit(1, Gate(matrix_X, 0), H(0), X(0))) ≈ [.5 -.5; -.5 .5]
 
-# Testing parametric custom_gate.
+# Testing parametric custom gate.
 matrix_x_func = function (params)
     angle = params["alpha"]
     return Matrix{Complex{Float64}}([cos(angle / 2) complex(0, -1) * sin(angle / 2); complex(0, -1) * sin(angle / 2) cos(angle / 2)])
