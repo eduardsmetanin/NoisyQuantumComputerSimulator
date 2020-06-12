@@ -1,6 +1,8 @@
-module Curcuits
+module NoisyQuantumComputerSimulator
 
-export Curcuit, exec, reset_state!
+export Circuit, exec, reset_state!
+export Gate, ID, X, Y, Z, H, PHASE, S, T, CZ, RX, RY, RZ, CNOT, CCNOT, SWAP, CSWAP, CCSWAP, controlled, noisify, damp_amplitude
+export damping_residual_kraus, damping_kraus, damping_kraus_map
 
 include("FullRegisterGate.jl")
 include("Gates.jl")
@@ -9,31 +11,31 @@ using LinearAlgebra
 using .FullRegisterGate
 using .Gates
 
-mutable struct Curcuit
+mutable struct Circuit
 	qubit_count::Int
 	density_matrix::Matrix{Complex{Float64}}
 	commands::Array{Function}
 
-	# Curcuit creates quantum register with the given size and sets it's value to |0⟩.
-	function Curcuit(size::Integer, gates...)
+	# Circuit creates quantum register with the given size and sets it's value to |0⟩.
+	function Circuit(size::Integer, gates...)
 		state_size = 2^size
 		density_matrix = zeros(Complex{Float64}, state_size, state_size)
 		density_matrix[1,1] = 1
-		curcuit = new(Int(size), density_matrix, Array{Function}[])
+		Circuit = new(Int(size), density_matrix, Array{Function}[])
 		for gate ∈ gates
-			curcuit += gate
+			Circuit += gate
 		end
-		return curcuit
+		return Circuit
 	end
 end
 
 # reset_state! sets quantum register state to |0⟩.
-function reset_state!(c::Curcuit)
+function reset_state!(c::Circuit)
 	c.density_matrix .= complex(0.0, 0.0)
 	c.density_matrix[1,1] = 1
 end
 
-function add_gate(c::Curcuit, g::Gate)::Curcuit
+function add_gate(c::Circuit, g::Gate)::Circuit
 	if !isempty(g.control_bit_indexes) && !isempty(g.kraus_operators)
 		error("applying Kraus operators within a gate with control bit(s) is not supported; instead, apply Kraus operators to control and target qubits individually")
 	end
@@ -65,18 +67,18 @@ function add_gate(c::Curcuit, g::Gate)::Curcuit
 	return c
 end
 
-# Defining + allows adding gates like this: curcuit += gate
-Base.:+(c::Curcuit, g::Gate) = add_gate(c, g)
+# Defining + allows adding gates like this: Circuit += gate
+Base.:+(c::Circuit, g::Gate) = add_gate(c, g)
 
-function exec(c::Curcuit, params::Dict{String,Float64} = Dict{String,Float64}())::Array{Complex{Float64}}
+function exec(c::Circuit, params::Dict{String,Float64} = Dict{String,Float64}())::Array{Complex{Float64}}
 	for command ∈ c.commands
 		command(params)
 	end
 	return c.density_matrix
 end
 
-# add_unitary_gate! adds the given unitary gate with optional control bits to the given curcuit.
-function add_unitary_gate!(c::Curcuit, 
+# add_unitary_gate! adds the given unitary gate with optional control bits to the given Circuit.
+function add_unitary_gate!(c::Circuit, 
 	matrix::AbstractMatrix{Complex{Float64}},
 	matrix_func::Function,
 	gate_lowest_index::Integer,
@@ -99,8 +101,8 @@ function add_unitary_gate!(c::Curcuit,
 	return
 end
 
-# add_noise! adds the specified via Kraus operators noise gate to the given curcuit.
-function add_noise!(c::Curcuit, 
+# add_noise! adds the specified via Kraus operators noise gate to the given Circuit.
+function add_noise!(c::Circuit, 
 	kraus_operators::AbstractVector{Matrix{Complex{Float64}}},
 	gate_lowest_index::Integer)
 
