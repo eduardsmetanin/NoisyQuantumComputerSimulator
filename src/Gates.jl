@@ -159,6 +159,10 @@ function custom_gate(matrix::Matrix{Complex{Float64}}, qubit_index::Integer, con
 	return Gate(matrix, qubit_index, control_bit_indexes)
 end
 
+function custom_gate(matrix_func::Function, qubit_index::Integer, control_bit_indexes::AbstractArray{Int64,1} = Array{Int64,1}([]))::Gate
+	return Gate(matrix_func, qubit_index, control_bit_indexes)
+end
+
 function controlled(control_bit_index::Integer, g::Gate)::Gate
 	return controlled([control_bit_index], g)
 end

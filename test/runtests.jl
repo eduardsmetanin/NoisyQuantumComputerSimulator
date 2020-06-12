@@ -77,9 +77,7 @@ CCBELL₇ = CCBELL * [0; 0; 0; 0; 0; 0; 0; 1]
 
 # Testing X.
 @test exec(Curcuit(1, X(0))) == [0 0; 0 1]
-@test exec(Curcuit(1, custom_gate(matrix_X, 0), X(0))) == [1 0; 0 0]
 @test exec(Curcuit(1, H(0), X(0))) ≈ [.5 .5; .5 .5]
-@test exec(Curcuit(1, custom_gate(matrix_X, 0), H(0), X(0))) ≈ [.5 -.5; -.5 .5]
 
 # Testing Y.
 @test exec(Curcuit(1, Y(0))) == [0 0; 0 1]
@@ -111,32 +109,14 @@ CCBELL₇ = CCBELL * [0; 0; 0; 0; 0; 0; 0; 1]
 @test exec(Curcuit(1, RX(pi, 0))) ≈ [0 0; 0 1]
 @test exec(Curcuit(1, RX(pi / 2, 0))) ≈ [.5 .5im; -.5im .5]
 
-# Testing parametric RX.
-c = Curcuit(1, RX("theta", 0))
-@test exec(c, Dict("theta" => Float64(pi))) ≈ [0 0; 0 1]
-reset_state!(c)
-@test exec(c, Dict("theta" => Float64(pi / 2))) ≈ 1 / 2 * [1 1im; -1im 1]
-
 # Testing RY.
 @test exec(Curcuit(1, RY(pi, 0))) ≈ [0 0; 0 1]
 @test exec(Curcuit(1, RY(pi / 2, 0))) ≈ [.5 .5; .5 .5]
-
-# Testing parametric RY.
-c = Curcuit(1, RY("theta", 0))
-@test exec(c, Dict("theta" => Float64(pi))) ≈ [0 0; 0 1]
-reset_state!(c)
-@test exec(c, Dict("theta" => Float64(pi / 2))) ≈ [.5 .5; .5 .5]
 
 # Testing RZ.
 @test exec(Curcuit(1, RZ(pi, 0))) ≈ [1 0; 0 0]
 @test exec(Curcuit(1, H(0), RZ(pi, 0))) ≈ [.5 -.5; -.5 .5]
 @test exec(Curcuit(1, H(0), RZ(pi / 2, 0))) ≈ [.5 -.5im; .5im .5]
-
-# Testing parametric RZ.
-c = Curcuit(1, H(0), RZ("theta", 0))
-@test exec(c, Dict("theta" => Float64(pi))) ≈ [.5 -.5; -.5 .5]
-reset_state!(c)
-@test exec(c, Dict("theta" => Float64(pi / 2))) ≈ [.5 -.5im; .5im .5]
 
 # Testing SWAP.
 @test exec(Curcuit(2, X(0), SWAP(0, 1))) == [0; 0; 1; 0] * [0 0 1 0]
@@ -146,6 +126,38 @@ reset_state!(c)
 @test exec(Curcuit(2, X(0), H(0), SWAP(0, 1))) == [1 / √2; 0; -1 / √2; 0] * [1 / √2 0 -1 / √2 0]
 @test exec(Curcuit(2, X(0), H(0), SWAP(0, 1))) == [1 / √2; 0; -1 / √2; 0] * [1 / √2 0 -1 / √2 0]
 @test exec(Curcuit(3, X(0), CSWAP(2, 0, 1))) == [0; 1; 0; 0; 0; 0; 0; 0] * [0 1 0 0 0 0 0 0]
+
+# Testing parametric RX.
+c = Curcuit(1, RX("theta", 0))
+@test exec(c, Dict("theta" => Float64(pi))) ≈ [0 0; 0 1]
+reset_state!(c)
+@test exec(c, Dict("theta" => Float64(pi / 2))) ≈ 1 / 2 * [1 1im; -1im 1]
+
+# Testing parametric RY.
+c = Curcuit(1, RY("theta", 0))
+@test exec(c, Dict("theta" => Float64(pi))) ≈ [0 0; 0 1]
+reset_state!(c)
+@test exec(c, Dict("theta" => Float64(pi / 2))) ≈ [.5 .5; .5 .5]
+
+# Testing parametric RZ.
+c = Curcuit(1, H(0), RZ("theta", 0))
+@test exec(c, Dict("theta" => Float64(pi))) ≈ [.5 -.5; -.5 .5]
+reset_state!(c)
+@test exec(c, Dict("theta" => Float64(pi / 2))) ≈ [.5 -.5im; .5im .5]
+
+# Testing custom_gate without parameters.
+@test exec(Curcuit(1, custom_gate(matrix_X, 0), X(0))) == [1 0; 0 0]
+@test exec(Curcuit(1, custom_gate(matrix_X, 0), H(0), X(0))) ≈ [.5 -.5; -.5 .5]
+
+# Testing parametric custom_gate.
+matrix_x_func = function (params)
+    angle = params["alpha"]
+    return Matrix{Complex{Float64}}([cos(angle / 2) complex(0, -1) * sin(angle / 2); complex(0, -1) * sin(angle / 2) cos(angle / 2)])
+end
+c = Curcuit(1, Gate(matrix_x_func, 0))
+@test exec(c, Dict("alpha" => Float64(pi))) ≈ [0 0; 0 1]
+reset_state!(c)
+@test exec(c, Dict("alpha" => Float64(pi / 2))) ≈ 1 / 2 * [1 1im; -1im 1]
 
 # Testing adding control bits to a gate.
 @test exec(Curcuit(2, CNOT(1, 0))) == exec(Curcuit(2, controlled(1, X(0))))
