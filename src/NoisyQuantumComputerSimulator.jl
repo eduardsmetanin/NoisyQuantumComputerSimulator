@@ -21,11 +21,11 @@ mutable struct Circuit
 		state_size = 2^size
 		density_matrix = zeros(Complex{Float64}, state_size, state_size)
 		density_matrix[1,1] = 1
-		Circuit = new(Int(size), density_matrix, Array{Function}[])
+		circuit = new(Int(size), density_matrix, Array{Function}[])
 		for gate ∈ gates
-			Circuit += gate
+			circuit += gate
 		end
-		return Circuit
+		return circuit
 	end
 end
 
