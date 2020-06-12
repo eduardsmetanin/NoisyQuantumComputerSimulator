@@ -1,6 +1,7 @@
 module Gates
 
 export Gate, ID, X, Y, Z, H, PHASE, S, T, CZ, RX, RY, RZ, CNOT, CCNOT, SWAP, CSWAP, CCSWAP, controlled, noisify, damp_amplitude
+export damping_residual_kraus, damping_kraus, damping_kraus_map
 
 const empty_matrix = Matrix{Complex{Float64}}(undef, 0, 0)
 const empty_kraus = Vector{Matrix{Complex{Float64}}}(undef, 0)
