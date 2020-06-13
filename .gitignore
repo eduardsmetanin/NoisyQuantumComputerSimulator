@@ -25,3 +25,6 @@ Manifest.toml
 
 # VSCode workspace
 *.code-workspace
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
