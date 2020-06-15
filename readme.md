@@ -1,8 +1,7 @@
 # Noisy Quantum Computer Simulator
 
 ## Demo
-Run notebook `jupyter/demo/demo.ipynb` in this repository for examples of how this package should be used, that can also be viewed at https://github.com/eduardsmetanin/NoisyQuantumComputerSimulator/blob/master/jupyter/demo/demo.ipynb and that is also hosted at
-https://notebooks.gesis.org/binder/jupyter/user/eduardsmetanin--mputersimulator-81i5psy9/notebooks/jupyter/demo/demo.ipynb
+Run notebook `jupyter/demo/demo.ipynb` in this repository for examples of how this package should be used. It that can also be viewed at https://github.com/eduardsmetanin/NoisyQuantumComputerSimulator/blob/master/jupyter/demo/demo.ipynb.
 
 ## Credits
 The project was created with the expert support of Quantum Open Source Foundation https://qosf.org/
